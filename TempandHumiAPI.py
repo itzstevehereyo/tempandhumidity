@@ -1,9 +1,19 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
 app = FastAPI()
 
-#MySQL Configuration
+# Allow requests from any frontend (Change this in production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Replace "*" with your frontend URL in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# MySQL Configuration
 db = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -12,17 +22,8 @@ db = mysql.connector.connect(
 )
 cursor = db.cursor(dictionary=True)
 
-#Get latest sensor readings
 @app.get("/latest-readings")
-
-def getLatestReadings():
-    try:
-        cursor.execute("SELECT * FROM readings ORDER BY reading_ID DESC LIMIT 1")
-        result = cursor.fetchone()
-
-        if result:
-            return {"status": "success","data": result}
-        else:
-            return {"status": "error", "message": "No data found"}
-    except Exception as err:
-        return {"status": "error", "message":str(err)}
+def get_latest_readings():
+    cursor.execute("SELECT * FROM readings ORDER BY reading_ID DESC LIMIT 1")
+    result = cursor.fetchone()
+    return {"status": "success", "data": result} if result else {"status": "error", "message": "No data found"}
