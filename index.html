@@ -6,12 +6,70 @@
     <title>Temperature & Humidity Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: #f4f4f4; }
-        .alert { background: red; color: white; padding: 15px; font-weight: bold; display: none; }
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: auto; 
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        .filter-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0.5px 0.5px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .alert {
+            background: red; 
+            color: white; 
+            padding: 15px; 
+            font-weight: bold; 
+            display: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        select, input {
+            padding: 6px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -38,12 +96,50 @@
         </table>
 
         <h2>Filter Readings</h2>
-        <label>Date: <input type="date" id="filterDate"></label>
-        <label>Hour: <input type="number" id="filterHour" min="0" max="23"></label>
-        <label>Temp (°C) Min: <input type="number" id="tempMin"></label>
-        <label>Max: <input type="number" id="tempMax"></label>
-        <label>Humidity (%) Min: <input type="number" id="humMin"></label>
-        <label>Max: <input type="number" id="humMax"></label>
+        
+        <!-- Date Filter -->
+        <div class="filter-group">
+            <label>Date:</label>
+            <input type="date" id="filterDate">
+        </div>
+
+        <!-- Hour Block Filter -->
+        <div class="filter-group">
+            <label>Hour Block:</label>
+            <select id="filterHourBlock">
+                <option value="">All Hours</option>
+                <option value="8-9">8AM - 9AM</option>
+                <option value="9-10">9AM - 10AM</option>
+                <option value="10-11">10AM - 11AM</option>
+                <option value="11-12">11AM - 12PM</option>
+                <option value="12-13">12PM - 1PM</option>
+                <option value="13-14">1PM - 2PM</option>
+                <option value="14-15">2PM - 3PM</option>
+                <option value="15-16">3PM - 4PM</option>
+                <option value="16-17">4PM - 5PM</option>
+            </select>
+        </div>
+
+        <!-- Temperature Filters -->
+        <div class="filter-group">
+            <label>Temp (°C) Min:</label>
+            <input type="number" id="tempMin">
+        </div>
+        <div class="filter-group">
+            <label>Max:</label>
+            <input type="number" id="tempMax">
+        </div>
+
+        <!-- Humidity Filters -->
+        <div class="filter-group">
+            <label>Humidity (%) Min:</label>
+            <input type="number" id="humMin">
+        </div>
+        <div class="filter-group">
+            <label>Max:</label>
+            <input type="number" id="humMax">
+        </div>
+
         <button onclick="applyFilters()">Apply Filters</button>
 
         <h2>Past Readings</h2>
@@ -83,7 +179,7 @@
                     updateChart(timestamp, temperature, humidity);
                 }
             } catch (error) {
-                console.error("Error fetching data", error);
+                console.error("Error fetching data:", error);
             }
         }
 
@@ -98,10 +194,14 @@
                 chartData.humidities.shift();
             }
 
-            sensorChart.data.labels = chartData.labels;
-            sensorChart.data.datasets[0].data = chartData.temperatures;
-            sensorChart.data.datasets[1].data = chartData.humidities;
-            sensorChart.update();
+            if (sensorChart) {
+                sensorChart.data.labels = chartData.labels;
+                sensorChart.data.datasets[0].data = chartData.temperatures;
+                sensorChart.data.datasets[1].data = chartData.humidities;
+                sensorChart.update();
+            } else {
+                initChart(timestamp, temperature, humidity);
+            }
         }
 
         async function fetchPastReadings() {
@@ -110,7 +210,7 @@
                 const result = await response.json();
 
                 if (result.status === "success") {
-                    const pastTable = document.getElementById("pastReadings");
+                    const pastTable = document.getElementById('pastReadings');
                     pastTable.innerHTML = `
                         <tr>
                             <th>Temperature (°C)</th>
@@ -120,7 +220,7 @@
                     `;
 
                     result.data.forEach(reading => {
-                        const row = document.createElement("tr");
+                        const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>${reading.temperature}°C</td>
                             <td>${reading.humidity}%</td>
@@ -130,55 +230,94 @@
                     });
                 }
             } catch (error) {
-                console.error("Error fetching past readings", error);
+                console.error("Error fetching past readings:", error);
             }
         }
 
         function applyFilters() {
-            const date = document.getElementById("filterDate").value;
-            const hour = document.getElementById("filterHour").value;
-            const tempMin = document.getElementById("tempMin").value;
-            const tempMax = document.getElementById("tempMax").value;
-            const humMin = document.getElementById("humMin").value;
-            const humMax = document.getElementById("humMax").value;
+            const date = document.getElementById('filterDate').value;
+            const hourBlock = document.getElementById('filterHourBlock').value;
+            const tempMin = parseFloat(document.getElementById('tempMin').value) || '';
+            const tempMax = parseFloat(document.getElementById('tempMax').value) || '';
+            const humMin = parseFloat(document.getElementById('humMin').value) || '';
+            const humMax = parseFloat(document.getElementById('humMax').value) || '';
 
-            const pastRows = document.querySelectorAll("#pastReadings tr:not(:first-child)");
+            const pastRows = document.querySelectorAll('#pastReadings tr:not(:first-child)');
+            
             pastRows.forEach(row => {
-                const [temp, hum, time] = row.children;
-                const rowDate = time.textContent.split(" ")[0];
-                const rowHour = time.textContent.split(" ")[1].split(":")[0];
+                const tempCell = row.querySelector('td:nth-child(1)');
+                const humCell = row.querySelector('td:nth-child(2)');
+                const timeCell = row.querySelector('td:nth-child(3)');
+
+                const readingDate = timeCell.textContent.split(' ')[0];
+                const readingTime = timeCell.textContent.split(' ')[1].split(':')[0];
+                const hourBlockReading = getHourBlockFromTimestamp(timeCell.textContent);
 
                 let show = true;
-                if (date && rowDate !== date) show = false;
-                if (hour && rowHour !== hour) show = false;
-                if (tempMin && parseFloat(temp.textContent) < tempMin) show = false;
-                if (tempMax && parseFloat(temp.textContent) > tempMax) show = false;
-                if (humMin && parseFloat(hum.textContent) < humMin) show = false;
-                if (humMax && parseFloat(hum.textContent) > humMax) show = false;
+                
+                if (date && readingDate !== date) show = false;
+                if (hourBlock && hourBlockReading !== hourBlock) show = false;
+                if (tempMin && parseFloat(tempCell.textContent.replace('°C', '')) < tempMin) show = false;
+                if (tempMax && parseFloat(tempCell.textContent.replace('°C', '')) > tempMax) show = false;
+                if (humMin && parseFloat(humCell.textContent.replace('%', '')) < humMin) show = false;
+                if (humMax && parseFloat(humCell.textContent.replace('%', '')) > humMax) show = false;
 
-                row.style.display = show ? "" : "none";
+                row.style.display = show ? '' : 'none';
             });
         }
 
-        function initChart() {
-            const ctx = document.getElementById("sensorChart").getContext("2d");
+        function getHourBlockFromTimestamp(timestamp) {
+            const parts = timestamp.split(/[- :]/);
+            const hours = parseInt(parts[parts.length - 2]);
+            return `${String(hours).padStart(2, '0')}-${String((hours % 23) + 1).padStart(2, '0')}`;
+        }
+
+        function initChart(label, temp, hum) {
+            const ctx = document.getElementById('sensorChart').getContext('2d');
             sensorChart = new Chart(ctx, {
-                type: "line",
+                type: 'line',
                 data: {
-                    labels: [],
-                    datasets: [
-                        { label: "Temperature (°C)", borderColor: "red", data: [] },
-                        { label: "Humidity (%)", borderColor: "blue", data: [] }
-                    ]
+                    labels: [label],
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        borderColor: '#FF6B6B',
+                        data: [temp]
+                    }, {
+                        label: 'Humidity (%)',
+                        borderColor: '#4ECDC4',
+                        data: [hum]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
             });
         }
 
-        initChart();
+        // Initialize chart and fetch initial data
+        initChart('', 0, 0);
         fetchLatestReading();
         fetchPastReadings();
+
+        // Apply filters initially if any are set in the HTML
+        applyFilters();
+
+        // Add event listeners for dynamic filtering
+        document.getElementById('filterDate').addEventListener('change', applyFilters);
+        document.getElementById('filterHourBlock').addEventListener('change', applyFilters);
+        document.getElementById('tempMin').addEventListener('input', applyFilters);
+        document.getElementById('tempMax').addEventListener('input', applyFilters);
+        document.getElementById('humMin').addEventListener('input', applyFilters);
+        document.getElementById('humMax').addEventListener('input', applyFilters);
+
+        // Auto-refresh latest reading every 5 seconds
         setInterval(fetchLatestReading, 5000);
     </script>
-
 </body>
 </html>
