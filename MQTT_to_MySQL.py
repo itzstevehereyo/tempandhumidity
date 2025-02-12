@@ -7,7 +7,7 @@ import paho.mqtt.client as mqtt
 db = database.connect(
     host = "localhost",
     user = "root",
-    password = "Ishy@7853_STeVeyohere",
+    password = "root",
     database = "tempandhumidity_readings"
 )
 cursor = db.cursor()
