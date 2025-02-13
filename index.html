@@ -51,11 +51,11 @@
                 const response = await fetch("http://127.0.0.1:8000/latest-readings");
                 const result = await response.json();
                 if (result.status === "success") {
-                    const { temperature, humidity, timestamp } = result.data;
-                    const [date, time] = timestamp.split(" ");
+                    const { temperature, humidity, date, clock } = result.data;
+                    const [date, clock] = timestamp.split(" ");
                     document.getElementById("latestReading").innerHTML = `
                         <td>${date}</td>
-                        <td>${time}</td>
+                        <td>${clock}</td>
                         <td>${temperature}°C</td>
                         <td>${humidity}%</td>
                     `;
