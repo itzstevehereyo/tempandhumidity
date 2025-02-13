@@ -34,7 +34,7 @@ def MQTTmessage(client, userdata, reading):
         tempandhumidity_readings[key] = data[key]
 
         if all(tempandhumidity_readings.values()):
-            sqlQuery = "INSERT INTO readings (temperature, humidity, clock, date) VALUES (%s, %s, %s)"
+            sqlQuery = "INSERT INTO readings (temperature, humidity, clock, date) VALUES (%s, %s, %s, %s)"
             values = (
                 tempandhumidity_readings["temperature"],
                 tempandhumidity_readings["humidity"], 
