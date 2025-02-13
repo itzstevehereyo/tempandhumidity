@@ -43,7 +43,7 @@
     <script>
         async function fetchLatestReading() {
             try {
-                const response = await fetch("http://127.0.0.1:8000/latest-readings");
+                const response = await fetch("http://127.0.0.1:8000/latest);
                 const result = await response.json();
 
                 if (result.status === "success") {
