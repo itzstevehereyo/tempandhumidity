@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,17 +12,16 @@
         th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
         th { background-color: #f4f4f4; }
         .alert { background: red; color: white; padding: 15px; font-weight: bold; display: none; }
+        .filter-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+        .filter-box { text-align: left; }
     </style>
 </head>
 <body>
-
     <h1>Temperature & Humidity Dashboard</h1>
-    
     <div class="alert" id="highTempAlert">🚨 HIGH TEMPERATURE ALERT! 🚨</div>
 
     <div class="container">
         <canvas id="sensorChart"></canvas>
-
         <h2>Latest Reading</h2>
         <table>
             <tr>
@@ -39,12 +37,22 @@
         </table>
 
         <h2>Filter Readings</h2>
-        <label>Date: <input type="date" id="filterDate"></label>
-        <label>Hour: <input type="number" id="filterHour" min="0" max="23"></label>
-        <label>Temp (°C) Min: <input type="number" id="tempMin"></label>
-        <label>Max: <input type="number" id="tempMax"></label>
-        <label>Humidity (%) Min: <input type="number" id="humMin"></label>
-        <label>Max: <input type="number" id="humMax"></label>
+        <div class="filter-container">
+            <div class="filter-box">
+                <label>Date: <input type="date" id="filterDate"></label>
+            </div>
+            <div class="filter-box">
+                <label>Hour: <input type="number" id="filterHour" min="0" max="23"></label>
+            </div>
+            <div class="filter-box">
+                <label>Temp (°C) <span id="tempRange"></span></label>
+                <input type="range" id="tempSlider" min="0" max="50" step="1" value="25">
+            </div>
+            <div class="filter-box">
+                <label>Humidity (%) <span id="humRange"></span></label>
+                <input type="range" id="humSlider" min="0" max="100" step="1" value="50">
+            </div>
+        </div>
         <button onclick="applyFilters()">Apply Filters</button>
 
         <h2>Past Readings</h2>
@@ -65,22 +73,14 @@
             try {
                 const response = await fetch("http://127.0.0.1:8000/latest-readings");
                 const result = await response.json();
-
                 if (result.status === "success") {
                     const { temperature, humidity, timestamp } = result.data;
-
-                    document.getElementById("latestReading").innerHTML = `
-                        <td>${temperature}°C</td>
-                        <td>${humidity}%</td>
-                        <td>${timestamp}</td>
-                    `;
-
+                    document.getElementById("latestReading").innerHTML = `<td>${temperature}°C</td><td>${humidity}%</td><td>${timestamp}</td>`;
                     if (temperature > 30) {
                         document.getElementById("highTempAlert").style.display = "block";
                     } else {
                         document.getElementById("highTempAlert").style.display = "none";
                     }
-
                     updateChart(timestamp, temperature, humidity);
                 }
             } catch (error) {
@@ -88,45 +88,15 @@
             }
         }
 
-        function updateChart(timestamp, temperature, humidity) {
-            chartData.labels.push(timestamp);
-            chartData.temperatures.push(temperature);
-            chartData.humidities.push(humidity);
-
-            if (chartData.labels.length > 10) {
-                chartData.labels.shift();
-                chartData.temperatures.shift();
-                chartData.humidities.shift();
-            }
-
-            sensorChart.data.labels = chartData.labels;
-            sensorChart.data.datasets[0].data = chartData.temperatures;
-            sensorChart.data.datasets[1].data = chartData.humidities;
-            sensorChart.update();
-        }
-
         async function fetchPastReadings() {
             try {
                 const response = await fetch("http://localhost:8000/past-readings");
                 const result = await response.json();
-
                 if (result.status === "success") {
                     const pastTable = document.getElementById("pastReadings");
-                    pastTable.innerHTML = `
-                        <tr>
-                            <th>Temperature (°C)</th>
-                            <th>Humidity (%)</th>
-                            <th>Timestamp</th>
-                        </tr>
-                    `;
-
                     result.data.forEach(reading => {
                         const row = document.createElement("tr");
-                        row.innerHTML = `
-                            <td>${reading.temperature}°C</td>
-                            <td>${reading.humidity}%</td>
-                            <td>${reading.timestamp}</td>
-                        `;
+                        row.innerHTML = `<td>${reading.temperature}°C</td><td>${reading.humidity}%</td><td>${reading.timestamp}</td>`;
                         pastTable.appendChild(row);
                     });
                 }
@@ -138,27 +108,36 @@
         function applyFilters() {
             const date = document.getElementById("filterDate").value;
             const hour = document.getElementById("filterHour").value;
-            const tempMin = document.getElementById("tempMin").value;
-            const tempMax = document.getElementById("tempMax").value;
-            const humMin = document.getElementById("humMin").value;
-            const humMax = document.getElementById("humMax").value;
+            const tempThreshold = document.getElementById("tempSlider").value;
+            const humThreshold = document.getElementById("humSlider").value;
 
-            const pastRows = document.querySelectorAll("#pastReadings tr:not(:first-child)");
-            pastRows.forEach(row => {
+            document.getElementById("tempRange").textContent = `${tempThreshold}°C`;
+            document.getElementById("humRange").textContent = `${humThreshold}%`;
+
+            document.querySelectorAll("#pastReadings tr:not(:first-child)").forEach(row => {
                 const [temp, hum, time] = row.children;
                 const rowDate = time.textContent.split(" ")[0];
                 const rowHour = time.textContent.split(" ")[1].split(":")[0];
-
-                let show = true;
-                if (date && rowDate !== date) show = false;
-                if (hour && rowHour !== hour) show = false;
-                if (tempMin && parseFloat(temp.textContent) < tempMin) show = false;
-                if (tempMax && parseFloat(temp.textContent) > tempMax) show = false;
-                if (humMin && parseFloat(hum.textContent) < humMin) show = false;
-                if (humMax && parseFloat(hum.textContent) > humMax) show = false;
-
+                const show = (!date || rowDate === date) && (!hour || rowHour === hour) &&
+                             (parseFloat(temp.textContent) <= tempThreshold) &&
+                             (parseFloat(hum.textContent) <= humThreshold);
                 row.style.display = show ? "" : "none";
             });
+        }
+
+        function updateChart(timestamp, temperature, humidity) {
+            chartData.labels.push(timestamp);
+            chartData.temperatures.push(temperature);
+            chartData.humidities.push(humidity);
+            if (chartData.labels.length > 10) {
+                chartData.labels.shift();
+                chartData.temperatures.shift();
+                chartData.humidities.shift();
+            }
+            sensorChart.data.labels = chartData.labels;
+            sensorChart.data.datasets[0].data = chartData.temperatures;
+            sensorChart.data.datasets[1].data = chartData.humidities;
+            sensorChart.update();
         }
 
         function initChart() {
@@ -180,6 +159,5 @@
         fetchPastReadings();
         setInterval(fetchLatestReading, 5000);
     </script>
-
 </body>
 </html>
