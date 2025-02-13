@@ -8,14 +8,9 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
         .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        .status-box { padding: 15px; font-size: 18px; font-weight: bold; color: white; border-radius: 5px; margin-top: 20px; }
-        .status-ok { background: green; }
-        .status-notok { background: red; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
         th { background-color: #f4f4f4; }
-        .filter-container { margin: 20px 0; display: flex; justify-content: center; gap: 10px; }
-        .filter-container input, .filter-container select { padding: 5px; }
         .datetime { font-size: 16px; font-weight: bold; margin-top: 5px; }
     </style>
 </head>
@@ -50,15 +45,18 @@
             try {
                 const response = await fetch("http://127.0.0.1:8000/latest-readings");
                 const result = await response.json();
+
                 if (result.status === "success") {
-                    const { temperature, humidity, date, clock } = result.data;
-                    const [date, clock] = timestamp.split(" ");
+                    const { temperature, humidity, timestamp } = result.data;
+                    const [date, time] = timestamp.split(" ");
+
                     document.getElementById("latestReading").innerHTML = `
                         <td>${date}</td>
-                        <td>${clock}</td>
+                        <td>${time}</td>
                         <td>${temperature}°C</td>
                         <td>${humidity}%</td>
                     `;
+
                     updateChart(timestamp, temperature, humidity);
                 }
             } catch (error) {
@@ -67,31 +65,37 @@
         }
         
         function updateChart(timestamp, temperature, humidity) {
+            if (sensorChart.data.labels.length > 10) {
+                sensorChart.data.labels.shift();
+                sensorChart.data.datasets[0].data.shift();
+                sensorChart.data.datasets[1].data.shift();
+            }
+
             sensorChart.data.labels.push(timestamp);
             sensorChart.data.datasets[0].data.push(temperature);
             sensorChart.data.datasets[1].data.push(humidity);
             sensorChart.update();
         }
-        
+
         function updateDateTime() {
             const now = new Date();
             document.getElementById("liveDateTime").textContent = now.toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" });
         }
         
         setInterval(updateDateTime, 1000);
-        
+
         const ctx = document.getElementById("sensorChart").getContext("2d");
         const sensorChart = new Chart(ctx, {
             type: "line",
             data: {
                 labels: [],
                 datasets: [
-                    { label: "Temperature (°C)", borderColor: "red", data: [] },
-                    { label: "Humidity (%)", borderColor: "blue", data: [] }
+                    { label: "Temperature (°C)", borderColor: "red", data: [], fill: false },
+                    { label: "Humidity (%)", borderColor: "blue", data: [], fill: false }
                 ]
             }
         });
-        
+
         fetchLatestReading();
         setInterval(fetchLatestReading, 5000);
         
