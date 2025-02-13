@@ -42,7 +42,7 @@
 
         <h2>Filter Readings</h2>
         <label>Date: <input type="date" id="filterDate"></label>
-        <label>Hour: <input type="number" id="filterHour" min="0" max="23"></label>
+        <label>Hour: <input type="time" id="filterHour"></label>
         
         <h3>Temperature Range (°C)</h3>
         <div class="slider-container">
@@ -94,11 +94,7 @@
                         <td>${timestamp}</td>
                     `;
 
-                    if (temperature > 30) {
-                        document.getElementById("highTempAlert").style.display = "block";
-                    } else {
-                        document.getElementById("highTempAlert").style.display = "none";
-                    }
+                    document.getElementById("highTempAlert").style.display = temperature > 30 ? "block" : "none";
 
                     updateChart(timestamp, temperature, humidity);
                 }
@@ -152,31 +148,13 @@
             document.getElementById("tempMaxLabel").textContent = `${tempMax}°C`;
             document.getElementById("humMinLabel").textContent = `${humMin}%`;
             document.getElementById("humMaxLabel").textContent = `${humMax}%`;
-
-            const pastRows = document.querySelectorAll("#pastReadings tr:not(:first-child)");
-            pastRows.forEach(row => {
-                const [temp, hum, time] = row.children;
-                const rowDate = time.textContent.split(" ")[0];
-                const rowHour = parseInt(time.textContent.split(" ")[1].split(":")[0]);
-
-                let show = true;
-                if (date && rowDate !== date) show = false;
-                if (hour !== "" && rowHour !== parseInt(hour)) show = false;
-                if (parseFloat(temp.textContent) < tempMin || parseFloat(temp.textContent) > tempMax) show = false;
-                if (parseFloat(hum.textContent) < humMin || parseFloat(hum.textContent) > humMax) show = false;
-
-                row.style.display = show ? "" : "none";
-            });
         }
 
-        document.querySelectorAll(".range-input").forEach(input => {
-            input.addEventListener("input", applyFilters);
-        });
-
-        initChart();
-        fetchLatestReading();
-        setInterval(fetchLatestReading, 5000);
+        window.onload = function() {
+            initChart();
+            fetchLatestReading();
+            setInterval(fetchLatestReading, 5000);
+        };
     </script>
-
 </body>
 </html>
