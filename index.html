@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,13 +32,50 @@
             height: 400px;
             margin: auto;
         }
-        canvas {
-            width: 100% !important;
-            height: 100% !important;
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
         }
-        #sensor-values {
-            font-size: 1.5em;
-            margin-bottom: 20px;
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 60%;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        #past-readings {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .filter-container {
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -52,8 +91,42 @@
         <div class="data-box"><strong>Date:</strong> <span id="date">Loading...</span></div>
     </div>
 
+    <button onclick="openModal()">View Past Readings</button>
+
     <div class="chart-container">
         <canvas id="sensorChart"></canvas>
+    </div>
+
+    <!-- Modal for past readings -->
+    <div id="readingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Past Sensor Readings</h2>
+            
+            <div class="filter-container">
+                <label for="dateFilter">Filter by Date:</label>
+                <input type="date" id="dateFilter" oninput="filterReadings()">
+                
+                <label for="timeFilter">Filter by Time:</label>
+                <input type="time" id="timeFilter" oninput="filterReadings()">
+            </div>
+
+            <div id="past-readings">
+                <table id="readingsTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Temperature (°C)</th>
+                            <th>Humidity (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -93,9 +166,6 @@
                 scales: {
                     x: { title: { display: true, text: 'Time' } },
                     y: { title: { display: true, text: 'Value' }, beginAtZero: true }
-                },
-                plugins: {
-                    legend: { position: 'top' }
                 }
             }
         });
@@ -124,6 +194,56 @@
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
+        }
+
+        async function fetchPastReadings() {
+            try {
+                let response = await fetch("http://localhost:8000/history");
+                let readings = await response.json();
+                let tableBody = document.querySelector("#readingsTable tbody");
+
+                if (readings.length === 0) {
+                    tableBody.innerHTML = "<tr><td colspan='4'>No past readings available.</td></tr>";
+                    return;
+                }
+
+                let rows = readings.map(reading => 
+                    `<tr>
+                        <td>${reading.date}</td>
+                        <td>${reading.time}</td>
+                        <td>${reading.temperature}°C</td>
+                        <td>${reading.humidity}%</td>
+                    </tr>`
+                ).join("");
+
+                tableBody.innerHTML = rows;
+            } catch (error) {
+                console.error("Error fetching past readings:", error);
+            }
+        }
+
+        function openModal() {
+            document.getElementById("readingsModal").style.display = "block";
+            fetchPastReadings();
+        }
+
+        function closeModal() {
+            document.getElementById("readingsModal").style.display = "none";
+        }
+
+        function filterReadings() {
+            let dateFilter = document.getElementById("dateFilter").value;
+            let timeFilter = document.getElementById("timeFilter").value;
+            let rows = document.querySelectorAll("#readingsTable tbody tr");
+
+            rows.forEach(row => {
+                let date = row.cells[0].textContent;
+                let time = row.cells[1].textContent;
+
+                let show = (!dateFilter || date === dateFilter) && 
+                           (!timeFilter || time.startsWith(timeFilter));
+                row.style.display = show ? "" : "none";
+            });
         }
 
         setInterval(fetchData, 2000);
